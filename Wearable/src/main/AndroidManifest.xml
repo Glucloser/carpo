@@ -237,7 +237,7 @@
 
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SHORT_TEXT"/>
+                android:value="SHORT_TEXT,RANGED_VALUE"/>
             <!--
             When your complication data provider is active, UPDATE_PERIOD_SECONDS specifies how
             often you want the system to check for updates to the data.
@@ -254,7 +254,7 @@
             -->
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="300"/>
+                android:value="600"/>
         </service>
 
         <service
@@ -268,7 +268,7 @@
 
             <meta-data
                 android:name="android.support.wearable.complications.SUPPORTED_TYPES"
-                android:value="SMALL_IMAGE"/>
+                android:value="LARGE_IMAGE,SMALL_IMAGE"/>
             <!--
             When your complication data provider is active, UPDATE_PERIOD_SECONDS specifies how
             often you want the system to check for updates to the data.
@@ -285,7 +285,7 @@
             -->
             <meta-data
                 android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
-                android:value="300"/>
+                android:value="600"/>
         </service>
 
         <service

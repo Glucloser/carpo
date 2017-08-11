@@ -111,6 +111,7 @@ public class CarpoAnalogConfigRecyclerViewAdapter
     private int mBackgroundComplicationId;
     private int mLeftComplicationId;
     private int mRightComplicationId;
+    private int mBottomComplicationId;
 
     // Required to retrieve complication data from watch face for preview.
     private ProviderInfoRetriever mProviderInfoRetriever;
@@ -139,6 +140,8 @@ public class CarpoAnalogConfigRecyclerViewAdapter
                 CarpoAnalogWatchFaceService.getComplicationId(ComplicationLocation.LEFT);
         mRightComplicationId =
                 CarpoAnalogWatchFaceService.getComplicationId(ComplicationLocation.RIGHT);
+        mBottomComplicationId =
+                CarpoAnalogWatchFaceService.getComplicationId(ComplicationLocation.BOTTOM);
 
         mSharedPref =
                 context.getSharedPreferences(
@@ -345,9 +348,11 @@ public class CarpoAnalogConfigRecyclerViewAdapter
 
         private ImageView mLeftComplicationBackground;
         private ImageView mRightComplicationBackground;
+        private ImageView mBottomComplicationBackground;
 
         private ImageButton mLeftComplication;
         private ImageButton mRightComplication;
+        private ImageButton mBottomComplication;
 
         private Drawable mDefaultComplicationDrawable;
 
@@ -374,6 +379,12 @@ public class CarpoAnalogConfigRecyclerViewAdapter
                     (ImageView) view.findViewById(R.id.right_complication_background);
             mRightComplication = (ImageButton) view.findViewById(R.id.right_complication);
             mRightComplication.setOnClickListener(this);
+
+            // Sets up bottom complication preview.
+            mBottomComplicationBackground =
+                    (ImageView) view.findViewById(R.id.right_complication_background);
+            mBottomComplication = (ImageButton) view.findViewById(R.id.bottom_complication);
+            mBottomComplication.setOnClickListener(this);
         }
 
         @Override
@@ -389,6 +400,11 @@ public class CarpoAnalogConfigRecyclerViewAdapter
 
                 Activity currentActivity = (Activity) view.getContext();
                 launchComplicationHelperActivity(currentActivity, ComplicationLocation.RIGHT);
+            } else if (view.equals(mBottomComplication)) {
+                Log.d(TAG, "Bottom Complication click()");
+
+                Activity currentActivity = (Activity) view.getContext();
+                launchComplicationHelperActivity(currentActivity, ComplicationLocation.BOTTOM);
             }
         }
 
@@ -470,6 +486,9 @@ public class CarpoAnalogConfigRecyclerViewAdapter
 
             mRightComplication.setImageDrawable(mDefaultComplicationDrawable);
             mRightComplicationBackground.setVisibility(View.INVISIBLE);
+
+            mBottomComplication.setImageDrawable(mDefaultComplicationDrawable);
+            mBottomComplicationBackground.setVisibility(View.INVISIBLE);
         }
 
         public void updateComplicationViews(
@@ -530,6 +549,15 @@ public class CarpoAnalogConfigRecyclerViewAdapter
                 } else {
                     mRightComplication.setImageDrawable(mDefaultComplicationDrawable);
                     mRightComplicationBackground.setVisibility(View.INVISIBLE);
+                }
+            } else if (watchFaceComplicationId == mBottomComplicationId) {
+                if (complicationProviderInfo != null) {
+                    mBottomComplication.setImageIcon(complicationProviderInfo.providerIcon);
+                    mBottomComplicationBackground.setVisibility(View.VISIBLE);
+
+                } else {
+                    mBottomComplication.setImageDrawable(mDefaultComplicationDrawable);
+                    mBottomComplicationBackground.setVisibility(View.INVISIBLE);
                 }
             }
         }

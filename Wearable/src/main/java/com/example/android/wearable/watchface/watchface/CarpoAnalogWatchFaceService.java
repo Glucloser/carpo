@@ -28,6 +28,7 @@ import android.util.SparseArray;
 import android.view.SurfaceHolder;
 
 import com.example.android.wearable.watchface.R;
+import com.example.android.wearable.watchface.complication.CGMSparkLineComplication;
 import com.example.android.wearable.watchface.complication.NightscoutFetchService;
 import com.example.android.wearable.watchface.config.CarpoAnalogConfigRecyclerViewAdapter;
 
@@ -48,10 +49,14 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
 
     private static final int LEFT_COMPLICATION_ID = 200;
     private static final int RIGHT_COMPLICATION_ID = 201;
+    private static final int BOTTOM_COMPLICATION_ID = 202;
 
     // Background, Left and right complication IDs as array for Complication API.
     private static final int[] COMPLICATION_IDS = {
-            BACKGROUND_COMPLICATION_ID, LEFT_COMPLICATION_ID, RIGHT_COMPLICATION_ID
+            BACKGROUND_COMPLICATION_ID,
+            LEFT_COMPLICATION_ID,
+            RIGHT_COMPLICATION_ID,
+            BOTTOM_COMPLICATION_ID
     };
 
     // Left and right dial supported types.
@@ -68,6 +73,10 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
                     ComplicationData.TYPE_ICON,
                     ComplicationData.TYPE_SHORT_TEXT,
                     ComplicationData.TYPE_SMALL_IMAGE
+            },
+            {
+                    ComplicationData.TYPE_SMALL_IMAGE,
+                    ComplicationData.TYPE_LARGE_IMAGE
             }
     };
 
@@ -83,6 +92,8 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
                 return LEFT_COMPLICATION_ID;
             case RIGHT:
                 return RIGHT_COMPLICATION_ID;
+            case BOTTOM:
+                return BOTTOM_COMPLICATION_ID;
             default:
                 return -1;
         }
@@ -105,6 +116,8 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
                 return COMPLICATION_SUPPORTED_TYPES[1];
             case RIGHT:
                 return COMPLICATION_SUPPORTED_TYPES[2];
+            case BOTTOM:
+                return COMPLICATION_SUPPORTED_TYPES[3];
             default:
                 return new int[] {};
         }
@@ -214,14 +227,7 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
 
             // Used throughout watch face to pull user's preferences.
             Context context = getApplicationContext();
-            NightscoutFetchService.ctx = context;
 
-            scheduler = (JobScheduler)getSystemService(Context.JOB_SCHEDULER_SERVICE);
-            JobInfo.Builder builder = new JobInfo.Builder(0, new ComponentName(context, NightscoutFetchService.class));
-            builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
-            builder.setMinimumLatency(1000 * 5 * 60).setOverrideDeadline(1000 * 10 * 60);
-//            builder.setPeriodic(1000 * 10 * 60, 1000 * 5 * 60);
-            scheduler.schedule(builder.build());
 
             mSharedPref =
                     context.getSharedPreferences(
@@ -290,6 +296,9 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
             ComplicationDrawable backgroundComplicationDrawable =
                     new ComplicationDrawable(getApplicationContext());
 
+            ComplicationDrawable bottomComplicationDrawable =
+                    new ComplicationDrawable(getApplicationContext());
+
             // Adds new complications to a SparseArray to simplify setting styles and ambient
             // properties for all complications, i.e., iterate over them all.
             mComplicationDrawableSparseArray = new SparseArray<>(COMPLICATION_IDS.length);
@@ -298,6 +307,8 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
             mComplicationDrawableSparseArray.put(RIGHT_COMPLICATION_ID, rightComplicationDrawable);
             mComplicationDrawableSparseArray.put(
                     BACKGROUND_COMPLICATION_ID, backgroundComplicationDrawable);
+            mComplicationDrawableSparseArray.put(
+                    BOTTOM_COMPLICATION_ID, bottomComplicationDrawable);
 
             setComplicationsActiveAndAmbientColors(mWatchHandHighlightColor);
             setActiveComplications(COMPLICATION_IDS);
@@ -608,7 +619,12 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
             mMinuteHandLength = (float) (mCenterX * 0.75);
             mHourHandLength = (float) (mCenterX * 0.5);
 
-            /*
+            layoutRoundComplications(width, height);
+            layoutRectangularComplications(width, height);
+        }
+
+        private void layoutRoundComplications(int width, int height) {
+           /*
              * Calculates location bounds for right and left circular complications. Please note,
              * we are not demonstrating a long text complication in this watch face.
              *
@@ -618,19 +634,19 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
              */
 
             // For most Wear devices, width and height are the same, so we just chose one (width).
-            int sizeOfComplication = width / 4;
+            int sizeOfRoundComplication = width / 4;
             int midpointOfScreen = width / 2;
 
-            int horizontalOffset = (midpointOfScreen - sizeOfComplication) / 2;
-            int verticalOffset = midpointOfScreen - (sizeOfComplication / 2);
+            int horizontalOffset = (midpointOfScreen - sizeOfRoundComplication) / 2;
+            int verticalOffset = midpointOfScreen - (sizeOfRoundComplication / 2);
 
             Rect leftBounds =
                     // Left, Top, Right, Bottom
                     new Rect(
                             horizontalOffset,
                             verticalOffset,
-                            (horizontalOffset + sizeOfComplication),
-                            (verticalOffset + sizeOfComplication));
+                            (horizontalOffset + sizeOfRoundComplication),
+                            (verticalOffset + sizeOfRoundComplication));
 
             ComplicationDrawable leftComplicationDrawable =
                     mComplicationDrawableSparseArray.get(LEFT_COMPLICATION_ID);
@@ -641,8 +657,8 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
                     new Rect(
                             (midpointOfScreen + horizontalOffset),
                             verticalOffset,
-                            (midpointOfScreen + horizontalOffset + sizeOfComplication),
-                            (verticalOffset + sizeOfComplication));
+                            (midpointOfScreen + horizontalOffset + sizeOfRoundComplication),
+                            (verticalOffset + sizeOfRoundComplication));
 
             ComplicationDrawable rightComplicationDrawable =
                     mComplicationDrawableSparseArray.get(RIGHT_COMPLICATION_ID);
@@ -655,6 +671,47 @@ public class CarpoAnalogWatchFaceService extends CanvasWatchFaceService {
             ComplicationDrawable backgroundComplicationDrawable =
                     mComplicationDrawableSparseArray.get(BACKGROUND_COMPLICATION_ID);
             backgroundComplicationDrawable.setBounds(screenForBackgroundBound);
+        }
+
+        private void layoutRectangularComplications(int width, int height) {
+           /*
+             * Calculates location bounds for right and left circular complications. Please note,
+             * we are not demonstrating a long text complication in this watch face.
+             *
+             * We suggest using at least 1/4 of the screen width for circular (or squared)
+             * complications and 2/3 of the screen width for wide rectangular complications for
+             * better readability.
+             */
+
+            // For most Wear devices, width and height are the same, so we just chose one (width).
+            int widthOfComplication = (int)((float)width * 0.666);
+            int heightOfComplication = height / 5;
+            int midpointOfScreen = width / 2;
+
+            int horizontalOffset = midpointOfScreen - (widthOfComplication / 2);
+            int verticalMidpointOffset = (int)(((double)width / 2) * Math.cos(
+                    Math.asin(
+                            ((double) widthOfComplication/2)
+                                    /
+                                    ((double)width/2))));
+            int bottomOffset = midpointOfScreen + verticalMidpointOffset;
+
+            Rect bottomBounds =
+                    // Left, Top, Right, Bottom
+                    new Rect(
+                            horizontalOffset,
+                            bottomOffset - heightOfComplication,
+                            (horizontalOffset + widthOfComplication),
+                            (bottomOffset));
+
+            SharedPreferences.Editor editor = mSharedPref.edit();
+            editor.putInt(CGMSparkLineComplication.SPARKLINE_HEIGHT, heightOfComplication);
+            editor.putInt(CGMSparkLineComplication.SPARKLINE_WIDTH, widthOfComplication);
+            editor.apply();
+
+            ComplicationDrawable bottomComplicationDrawable =
+                    mComplicationDrawableSparseArray.get(BOTTOM_COMPLICATION_ID);
+            bottomComplicationDrawable.setBounds(bottomBounds);
         }
 
         @Override

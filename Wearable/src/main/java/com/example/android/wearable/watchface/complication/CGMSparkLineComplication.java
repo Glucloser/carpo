@@ -1,5 +1,6 @@
 package com.example.android.wearable.watchface.complication;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -10,6 +11,9 @@ import android.support.wearable.complications.ComplicationData;
 import android.support.wearable.complications.ComplicationManager;
 import android.support.wearable.complications.ComplicationProviderService;
 import android.support.wearable.complications.ComplicationText;
+import android.util.Log;
+
+import com.example.android.wearable.watchface.R;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,16 +24,36 @@ import java.util.List;
  */
 
 public class CGMSparkLineComplication extends ComplicationProviderService {
+    public static String SPARKLINE_WIDTH = "sparkline_width";
+    public static String SPARKLINE_HEIGHT= "sparkline_height";
+
+
     @Override
     public void onComplicationUpdate(int complicationId, int datatype, ComplicationManager complicationManager) {
+        NightscoutFetchService.schedule(this);
+
         SharedPreferences preferences =
         getSharedPreferences(
                 NightscoutFetchService.NIGHTSCOUT_FETCH_SERVICE_PREFERENCES_FILE_KEY, 0);
+
+        SharedPreferences facePrefs =
+                getSharedPreferences(getString(R.string.carpo_analog_preference_file_key),
+                        Context.MODE_PRIVATE);
+
         String[] recentSValues = preferences.getString(
                 NightscoutFetchService.RECENT_VALUES_KEY,
                 "").split(",");
 
         if (recentSValues.length == 0  || (recentSValues.length == 1 && recentSValues[0] == "")) {
+            complicationManager.noUpdateRequired(complicationId);
+            return;
+        }
+
+        int width = facePrefs.getInt(SPARKLINE_WIDTH, 0);
+        int height = facePrefs.getInt(SPARKLINE_HEIGHT, 0);
+        Log.d("SPARKLINE", String.valueOf(width) + "x" + String.valueOf(height));
+
+        if (width * height == 0) {
             complicationManager.noUpdateRequired(complicationId);
             return;
         }
@@ -49,7 +73,7 @@ public class CGMSparkLineComplication extends ComplicationProviderService {
             max = value > max ? value : max;
         }
 
-        Bitmap bmap = Bitmap.createBitmap(200, 100, Bitmap.Config.RGB_565);
+        Bitmap bmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
         Canvas canvas = new Canvas(bmap);
         Paint paint = new Paint();
         paint.setColor(Color.RED);
@@ -57,15 +81,20 @@ public class CGMSparkLineComplication extends ComplicationProviderService {
 
         Integer xStep = bmap.getWidth() / (recentValues.size() + 1);
         Integer x = xStep, prevX = 0;
-        float yScale = (float)bmap.getHeight() / (float)(max - min);
+        float yScale = (float)((float)bmap.getHeight() * 0.9) / (float)(max - min);
         Integer y = 0, prevY = 0;
 
-        Integer firstValue = recentValues.get(0), lastValue = recentValues.get(recentValues.size() - 1);
-        canvas.drawText(String.valueOf(firstValue), xStep, (firstValue - min) * yScale, paint);
-        canvas.drawText(String.valueOf(lastValue),
-                recentValues.size() * xStep,
-                (lastValue - min) * yScale,
+        canvas.drawLine(0, (float)(bmap.getHeight() * 0.75),
+                bmap.getWidth(), (float)(bmap.getHeight() * 0.75),
                 paint);
+        canvas.drawText(String.valueOf(min + ((max - min) * 0.25)),
+                xStep, (float)(bmap.getHeight() * 0.75), paint);
+
+        canvas.drawLine(0, (float)(bmap.getHeight() * 0.25),
+                bmap.getWidth(), (float)(bmap.getHeight() * 0.25),
+                paint);
+        canvas.drawText(String.valueOf(min + ((max - min) * 0.75)),
+                xStep, (float)(bmap.getHeight() * 0.25), paint);
 
         for (Integer value : recentValues) {
             y = (int)((float)(value - min) * yScale);
@@ -83,7 +112,7 @@ public class CGMSparkLineComplication extends ComplicationProviderService {
         }
 
         ComplicationData.Builder builder = new ComplicationData.Builder(ComplicationData.TYPE_SMALL_IMAGE);
-        builder.setSmallImage(Icon.createWithBitmap(bmap)).setImageStyle(ComplicationData.IMAGE_STYLE_PHOTO);
+        builder.setSmallImage(Icon.createWithBitmap(bmap));
 
         complicationManager.updateComplicationData(complicationId, builder.build());
     }
